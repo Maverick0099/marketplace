@@ -14,16 +14,16 @@ A microservices-based e-commerce backend built with Node.js and Express.js. It p
 
 ## Services
 
-| Service | Responsibility | Main integrations |
-|---|---|---|
-| `auth` | Registration, login, authentication, addresses, and logout | MongoDB, Redis, RabbitMQ |
-| `product` | Product APIs, seller product listing, and image uploads | MongoDB, ImageKit, RabbitMQ |
-| `cart` | Read and update an authenticated user's cart | MongoDB |
-| `order` | Create, read, list, and cancel orders; update shipping addresses | MongoDB, HTTP calls to cart/product, RabbitMQ |
-| `payment` | Create Razorpay orders and verify payment signatures | MongoDB, Razorpay, RabbitMQ |
-| `notification` | Consume events and send email notifications | RabbitMQ, Nodemailer/Gmail |
-| `seller-dashboard` | Maintain seller-facing copies/views of marketplace data | MongoDB, RabbitMQ |
-| `ai-buddy` | Authenticated Socket.IO assistant with product-search and cart tools | Gemini, LangChain/LangGraph, HTTP calls to product/cart |
+| Service            | Responsibility                                                       | Main integrations                                       |
+| ------------------ | -------------------------------------------------------------------- | ------------------------------------------------------- |
+| `auth`             | Registration, login, authentication, addresses, and logout           | MongoDB, Redis, RabbitMQ                                |
+| `product`          | Product APIs, seller product listing, and image uploads              | MongoDB, ImageKit, RabbitMQ                             |
+| `cart`             | Read and update an authenticated user's cart                         | MongoDB                                                 |
+| `order`            | Create, read, list, and cancel orders; update shipping addresses     | MongoDB, HTTP calls to cart/product, RabbitMQ           |
+| `payment`          | Create Razorpay orders and verify payment signatures                 | MongoDB, Razorpay, RabbitMQ                             |
+| `notification`     | Consume events and send email notifications                          | RabbitMQ, Nodemailer/Gmail                              |
+| `seller-dashboard` | Maintain seller-facing copies/views of marketplace data              | MongoDB, RabbitMQ                                       |
+| `ai-buddy`         | Authenticated Socket.IO assistant with product-search and cart tools | Gemini, LangChain/LangGraph, HTTP calls to product/cart |
 
 ## Architecture and Request Flow
 
@@ -76,45 +76,3 @@ The deployment workflow used for selected services is:
 7. When a demo is finished, scale tasks down and review other billable resources separately.
 
 Pushing an image to ECR confirms only that the image was uploaded. It does not prove that the container starts, connects to dependencies, passes its health check, or serves the expected API route.
-
-## AWS Cost Note
-
-Setting an ECS service's desired task count to `0` tells ECS to maintain zero running tasks. It does **not** delete the service or all related resources. An ALB, NAT Gateway, public IPv4 addresses, log ingestion/storage, ECR image storage, and external or managed databases/message brokers may still incur charges.
-
-AWS Free Tier is not a universal rule that permits exactly four ECS services. Eligibility depends on the account, service, region, current Free Tier terms or credits, and actual usage. Check **Billing and Cost Management → Bills / Cost Explorer** and configure a budget alert.
-
-If minimizing idle costs is the priority, consider deleting the ALB and other unneeded billable resources only after checking their dependencies. The ALB URL will stop working if the ALB is deleted and may change when it is recreated.
-
-## Items to Verify Before a Full Demo
-
-- The `seller-dashboard` folder did not have a Dockerfile in the reviewed workspace. Confirm how its image is built before relying on a repeatable rebuild.
-- The payment publisher and seller-dashboard consumer event names differed in the reviewed code: `PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATED` versus `PAYMENT_SELLER_DASHBOARD.PAYMENT_UPDATE`. Align and test the event contract.
-- Some service-to-service HTTP URLs are hard-coded to an ALB hostname. Verify the hostname and paths before the demo; prefer environment-based configuration or internal service discovery.
-- RabbitMQ connection helpers may log failures without consistently stopping startup. Verify broker connectivity, queue bindings, and consumer health.
-- Deployment configuration is not fully automated as infrastructure-as-code in the reviewed workspace. Document resource settings without recording secret values.
-- Verify required environment variables, container ports, health-check paths, target-group registration, and security-group rules.
-- Test the exact deployed endpoints and integration flow with non-sensitive demo data.
-
-## Security Practices
-
-- Never commit `.env` files, passwords, API keys, JWT secrets, payment secrets, or cloud credentials.
-- Use AWS Secrets Manager or secure ECS task-definition secret references where appropriate.
-- Limit inbound security-group rules to required sources and ports.
-- Use HTTPS for public application traffic.
-- Avoid exposing databases, Redis, or RabbitMQ directly to the public internet.
-- Rotate any secret that has accidentally been committed or shared.
-
-## Contribution and Attribution
-
-Describe your own contribution accurately by identifying the services, features, tests, and AWS tasks you personally implemented. Do not claim that all services were running simultaneously, fully tested, highly available, or production-ready unless you have verified evidence for those claims.
-
-## Demo Checklist
-
-- [ ] Confirm which ECS services need to run for the demo.
-- [ ] Set desired task counts for only the required services.
-- [ ] Wait until ECS tasks are running and ALB target-group targets are healthy.
-- [ ] Check logs for startup errors and dependency failures.
-- [ ] Test a simple API route in Postman.
-- [ ] Test authentication and one supported business flow if its dependencies are available.
-- [ ] Confirm external integrations and RabbitMQ consumers work before demonstrating them.
-- [ ] After the interview, scale tasks back down and inspect AWS Billing for idle resource charges.
